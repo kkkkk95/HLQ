@@ -41,7 +41,7 @@ class analyze:
         return group
     def calculate_turnaround_time2(self,group):
         group = group.sort_values('计划起飞时间')  # 按计划起飞时间排序
-        group['过站时间'] = group['实际起飞时间'].shift(-1) - group['实际落地时间']  # 计算过站时间
+        group['过站时间'] = group['计划起飞时间'].shift(-1) - group['计划落地时间']  # 计算过站时间
         
         return group
     def run(self,n):
