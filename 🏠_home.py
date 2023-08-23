@@ -18,9 +18,9 @@ if __name__ == "__main__":
     st.title('这是主页')
     # 初始化全局配置
     if 'first_visit' not in st.session_state:
-
+        st.session_state.df3=''
         st.balloons()
-          
+        
     else:
         st.session_state.first_visit=False
         
