@@ -457,7 +457,7 @@ with col1:
     month = st.text_input("输入时间段名称",value='7月')
     pos=st.text_input("输入地区分类",value='东南亚')
     if st.button('记录数据',key='button1'):
-        if st.session_state.df3!='' or not st.session_state.df3.empty():
+        if st.session_state.df3 is not None and not st.session_state.df3.empty:
             zongjie = st.session_state.df3.loc[pos]
             float_west_wide=float(zongjie['西跑道宽体机占比'][0:-1].replace('nan', '0'))
             float_west_narrow=float(zongjie['西跑道窄体机占比'][0:-1].replace('nan', '0'))
@@ -472,7 +472,7 @@ with col1:
             st.success('记录当前数据成功')
         else:
             st.warning('未检测到有效数据')
-st.write('------------')
+st.write('===')
 st.write('### 结果输出:')
 # 绘制柱状图
 plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
