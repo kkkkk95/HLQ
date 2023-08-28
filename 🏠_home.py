@@ -20,7 +20,11 @@ if __name__ == "__main__":
     if 'first_visit' not in st.session_state:
         st.session_state.df3=''
         st.balloons()
-        
+        st.session_state.recorddata1=''
+        st.session_state.recorddata2=''
+        st.session_state.recorddata3=''
+        st.session_state.recorddata4=''
+        st.session_state.recorddic={}
     else:
         st.session_state.first_visit=False
         

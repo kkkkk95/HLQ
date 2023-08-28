@@ -423,34 +423,66 @@ if is_button==1:
     result=df.to_excel(os.path.abspath(r'result.xlsx'))
     download_button(os.path.abspath(r'result.xlsx'), 'download')
 st.write(st.session_state.df3)
+
+
+
 st.write('---------------------------------') 
-st.title('柱状图制作')
-month = st.text_input("输入时间段名称（以空格分开）",value='7月 8月')
-month_list = month.split(' ')
-datadic={}
-for month in month_list:
-    datastr=st.text_input("输入{}数据（西/中/东跑道占比，以空格分开）".format(month),value='32.1 41.5 26.4')
-    datadic[month]=[float(num) for num in datastr.split()]
-    j=0
-    for x in datadic[month]:
-        x=float(x)
-        j=j+x
-    if 98<j<102:
-        st.success('Done')
-    else:
-        st.warning('请检查数值')
-        
-data=pd.DataFrame(datadic, index=['西跑道','中跑道','东跑道'])
-st.write(data.transpose())
+st.write('## 柱状图制作')
+st.write('### 数据导入:')
+col1,col2=st.columns(2)
 
-
+with col2:
+    datadic_selfmake={}
+    st.write('输入额外数据以制作柱状图')
+    month = st.text_input("输入时间段名称（以空格分开）",value='7月 8月')
+    month_list = month.split(' ')
+    for month in month_list:
+        datastr=st.text_input("输入{}数据（西/中/东跑道占比，以空格分开）".format(month),value='32.1 41.5 26.4')
+        datadic_selfmake[month]=[float(num) for num in datastr.split()]
+        j=0
+        for x in datadic_selfmake[month]:
+            x=float(x)
+            j=j+x
+        if 98<j<102:
+            st.success('Done')
+        else:
+            st.warning('请检查数值')
+    if st.button('输入数据',key='button0'):
+        data=pd.DataFrame(datadic_selfmake, index=['西跑道','中跑道','东跑道'])
+        st.write(data.transpose())
+        st.session_state.recorddic.update(datadic_selfmake)
+with col1:
+    
+    st.write('记录当前数据（按地区和款窄体机分类跑道使用数据对比）')
+    month = st.text_input("输入时间段名称",value='7月')
+    pos=st.text_input("输入地区分类",value='东南亚')
+    if st.button('记录数据',key='button1'):
+        if not st.session_state.df3.empty:
+            zongjie = st.session_state.df3.loc[pos]
+            float_west_wide=float(zongjie['西跑道宽体机占比'][0:-1].replace('nan', '0'))
+            float_west_narrow=float(zongjie['西跑道窄体机占比'][0:-1].replace('nan', '0'))
+            float_center_wide=float(zongjie['中跑道宽体机占比'][0:-1].replace('nan', '0'))
+            float_center_narrow=float(zongjie['中跑道窄体机占比'][0:-1].replace('nan', '0'))
+            float_east_wide=float(zongjie['东跑道宽体机占比'][0:-1].replace('nan', '0'))
+            float_east_narrow=float(zongjie['东跑道窄体机占比'][0:-1].replace('nan', '0'))
+            st.session_state.recorddic[month+pos]=[float_west_wide+float_west_narrow,float_center_wide+float_center_narrow,float_east_wide+float_east_narrow]
+            st.write(pd.DataFrame({'西跑道':float_west_wide+float_west_narrow,
+                                   '中跑道':float_center_wide+float_center_narrow,
+                                   '东跑道':float_east_wide+float_east_narrow},index=[month+pos]))
+            st.success('记录当前数据成功')
+        else:
+            st.warning('未检测到有效数据')
+st.write('===')
+st.write('### 结果输出:')
 # 绘制柱状图
 plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
 plt.rcParams['axes.unicode_minus'] = False
 fig, ax = plt.subplots(figsize=(4,2), dpi=100)
+datadic=st.session_state.recorddic
 months = list(datadic.keys())
 runways = ['西跑道', '中跑道', '东跑道']
 data = np.array(list(datadic.values()))
+st.write(pd.DataFrame(datadic,index=runways).transpose())
 
 # 绘制柱状图
 fig, ax = plt.subplots()
@@ -471,7 +503,7 @@ ax.set_xticklabels(runways)
 ax.legend(months)
 ax.set_xlabel('跑道')
 ax.set_ylabel('百分比：%')
-ax.set_title('首都机场跑道占比柱状图')
+ax.set_title('首都机场落地跑道占比柱状图')
 
 # 显示图形
 st.pyplot(plt)
