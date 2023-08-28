@@ -472,7 +472,7 @@ with col1:
             st.success('记录当前数据成功')
         else:
             st.warning('未检测到有效数据')
-st.write('===')
+st.write('------------')
 st.write('### 结果输出:')
 # 绘制柱状图
 plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
