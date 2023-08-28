@@ -7,7 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import datetime
-
+import os
 # 设置网页标题，以及使用宽屏模式
 st.set_page_config(
     page_title="TAXI_TIME",
@@ -25,8 +25,10 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 
 class ana:
-    def __init__(self,source_file,st,key):
+    def __init__(self,source_file,st,key):        
         self.source_file = source_file
+        self.data34_path=os.path.abspath(r'data/代码.xlsx')
+        self.data34=pd.read_excel(self.data34_path)
         self.st=st
         #设置机型数据
         self.wide = ['332','333','359','744','747','773','787']
@@ -82,8 +84,14 @@ class ana:
     def reading(self):
         # 将第二行设置为标题
         df=pd.read_excel(self.source_file, header=0, skiprows=1)
-        # 保留指定列
-        columns_to_keep = ['航班号', '飞机号', '机型', '起飞机场', '撤轮挡时间', 'ACARS滑出时间', 'ACARS起飞时间', 'ACARS落地时间','ACARS推入时间', '落地机场', '落地跑道', '起飞跑道']
+        if bool(df['落地机场'][0]=='PEK') and self.key==3:
+            df = df.merge(self.data34[['三字码', '四字码']], left_on='起飞机场', right_on='三字码', how='left')
+            df.rename(columns={'四字码': '起飞机场四字码'}, inplace=True)
+            # 保留指定列
+            columns_to_keep = ['航班号', '飞机号', '机型', '起飞机场', '撤轮挡时间', 'ACARS滑出时间', 'ACARS起飞时间', 'ACARS落地时间','ACARS推入时间', '落地机场', '落地跑道', '起飞跑道','起飞机场四字码']
+        else:
+            # 保留指定列
+            columns_to_keep = ['航班号', '飞机号', '机型', '起飞机场', '撤轮挡时间', 'ACARS滑出时间', 'ACARS起飞时间', 'ACARS落地时间','ACARS推入时间', '落地机场', '落地跑道', '起飞跑道']
         df = df.loc[:, columns_to_keep]
         df['机型'] = df['机型'].astype(str)
         df['起飞机场'] = df['起飞机场'].astype(str)
@@ -100,48 +108,7 @@ class ana:
         df['滑出时间'] = abs(df['滑出时间'])
         df['滑入时间'] = df['ACARS推入时间'] - df['ACARS落地时间']
         df['滑入时间'] = abs(df['滑入时间'])
-        if bool(df['落地机场'][0]=='PEK') and self.key==3:
-            #转换三字码
-            self.n = 0  # 百分比分子
-            progress_bar=self.st.progress(0)
-            status_text =self.st.empty()
-            unsuccess_text=self.st.empty()
-            text=''
-            # 循环遍历每个元素并转换三字码
-            max_retries = 5  # 最大尝试次数
-            for i, value in enumerate(df['起飞机场']):
-                retries = 0  # 计数器，跟踪尝试次数
-                while retries < max_retries:
-                    try:
-                        converted_value = self.switch34(value)  # 调用switch34函数进行转换
-                        df.at[i, '起飞机场四字码'] = converted_value  # 将转换后的值添加到新列中
-                        break  # 转换成功，跳出循环
-                    except:
-                        if retries==(max_retries-1):
-                            text += value + ';'
-                        retries += 1  # 尝试次数加1
-
-                # 显示百分比
-                self.n = self.n + 1
-                percent = round(float(self.n)/float(len(df)),4)
-                progress_bar.progress(percent)
-                # 更新状态文本
-                status_text.markdown(
-                            f"""
-                            <div>
-                            <div style='position:absolute; width:100%; height:100%; top:0; left:0; display:flex; align-items:center; justify-content:center; font-size:24px;'>
-                            三四字码转换Progress: {percent*100:.2f}%
-                            </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-            progress_bar.progress(100)
-            if text!='':
-                text=text+'未转化成功'
-                unsuccess_text.text(text)
-            else:
-                pass
+        
         return df
     def calculate_time(self,pos,minutes,key):
         # 创建字典存储结果
@@ -203,38 +170,7 @@ class ana:
             '东跑道':east}
         
         return data,average_taxiin
-    #三字码、四字码互相转换
-    def switch34(self,x):
-        url = 'http://www.6qt.net/index.asp'
-        if len(x)==3:
-            field='AreaCode'
-            key=9
-        elif len(x)==4:
-            field='PostCode'
-            key=6
-        else:
-            pass
-        
-        data = {'Field': field,'keyword': x}
-        hea = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36'}
-        res = requests.post(url, headers=hea, data=data)
-        res.encoding = 'gbk'
-        bs = BeautifulSoup(res.text, 'html.parser')
-        data = bs.find_all('td', width='80')
-        try:
-            data = data[key].text
-            result=re.findall(r"([A-Z]{3,4})",data)[0]
-        except:
-            if len(x)==3:
-                result=self.dicelse[x]
-            elif len(x)==4:
-                for key, val in self.dicelse.items():
-                    if val == x:
-                        result=key
-            else:
-                pass
-        return result
+    
     def calculate_percent2(self,minutes):
         # 初始化空的结果DataFrame
         result_df = pd.DataFrame(index=self.pos_pattern_rule.keys(),
