@@ -18,7 +18,7 @@ if __name__ == "__main__":
     st.title('这是主页')
     # 初始化全局配置
     if 'first_visit' not in st.session_state:
-        st.session_state.df3=''
+        st.session_state.df3=pd.DataFrame([])
         st.balloons()
         st.session_state.recorddata1=''
         st.session_state.recorddata2=''
