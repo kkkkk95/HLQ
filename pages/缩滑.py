@@ -446,7 +446,7 @@ with col2:
             x=float(x)
             j=j+x
         if 98<j<102:
-            st.success('Done')
+            st.success('Data Matched!')
         else:
             st.warning('请检查数值')
     if st.button('输入数据',key='button0'):
