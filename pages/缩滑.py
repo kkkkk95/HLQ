@@ -477,8 +477,8 @@ with col1:
 st.write('---------------------')
 st.write('### 结果输出:')
 # 绘制柱状图
-mpl.font_manager.fontManager.addfont(r'data/思源屏显臻宋.ttf') #临时注册新的全局字体
-plt.rcParams['font.sans-serif']=['思源屏显臻宋'] #用来正常显示中文标签
+mpl.font_manager.fontManager.addfont('字体/SimHei.ttf') #临时注册新的全局字体
+plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
 plt.rcParams['axes.unicode_minus']=False#用来正常显示负号
 fig, ax = plt.subplots(figsize=(4,2), dpi=100)
 datadic=st.session_state.recorddic
