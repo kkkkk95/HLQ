@@ -457,7 +457,7 @@ with col1:
     month = st.text_input("输入时间段名称",value='7月')
     pos=st.text_input("输入地区分类",value='东南亚')
     if st.button('记录数据',key='button1'):
-        if not st.session_state.df3.empty:
+        if not st.session_state.df3.empty or st.session_state.df3.empty!='':
             zongjie = st.session_state.df3.loc[pos]
             float_west_wide=float(zongjie['西跑道宽体机占比'][0:-1].replace('nan', '0'))
             float_west_narrow=float(zongjie['西跑道窄体机占比'][0:-1].replace('nan', '0'))
