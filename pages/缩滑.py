@@ -10,8 +10,10 @@ import os
 import base64
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
+import matplotlib as mpl
+mpl.font_manager.fontManager.addfont(r'data/思源屏显臻宋.ttf') #临时注册新的全局字体
+plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
+plt.rcParams['axes.unicode_minus']=False#用来正常显示负号
 # 设置网页标题，以及使用宽屏模式
 st.set_page_config(
     page_title="TAXI_TIME",
