@@ -189,7 +189,7 @@ class ana:
             time_format = datetime.timedelta(minutes=minutes)
             matching_airports = matching_airports[matching_airports['滑入时间'] <= time_format]
             #去除国际航班落地时间在0-6点的数据
-            if region in ['澳洲','日韩','美洲','欧洲']:
+            if region in ['澳洲','日韩','美洲','欧洲','韩国','日本','东南亚','印度']:
                 matching_airports = matching_airports[matching_airports['ACARS落地时间'].dt.hour > 6]
             # 计算总个数
             total_count = len(matching_airports)
