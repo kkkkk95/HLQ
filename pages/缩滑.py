@@ -432,8 +432,8 @@ st.write('---------------------------------')
 st.write('## 柱状图制作')
 st.write('### 数据导入:')
 col1,col2=st.columns(2)
-if  source_file1 and source_file2 is not None:
-    anal=ana(source_file1,st,1)
+if  source_file2 is not None:
+    anal=ana(source_file2,st,1)
     dic_options=anal.pos_pattern_rule
     list_choice_=list(dic_options.keys())
     list_choice=['汇总']+list_choice_
