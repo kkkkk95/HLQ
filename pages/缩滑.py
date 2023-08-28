@@ -1,4 +1,3 @@
-from pyclbr import Class
 import streamlit as st
 import pandas as pd
 from openpyxl import load_workbook
@@ -9,6 +8,8 @@ import re
 import datetime
 import os
 import base64
+import matplotlib.pyplot as plt
+import numpy as np
 # 设置网页标题，以及使用宽屏模式
 st.set_page_config(
     page_title="TAXI_TIME",
@@ -347,7 +348,7 @@ def download_button(file_path, button_text):
     """, unsafe_allow_html=True)
 # 用户输入机场三字码
 airports1 = st.text_input("输入起飞机场三字码（多个机场以空格分开）",value='JMU TGO')
-airport_list1 = airports1.split()
+airport_list1 = airports1.split(' ')
 
 # 用户输入忽略过大滑行时间
 ignore_time = st.number_input("输入忽略过大滑行时间（分钟）", min_value=0, step=1, value=15)
@@ -385,7 +386,7 @@ st.write('---------------------------------')
 st.write("## 成都两场、昆明、重庆航班首都机场使用跑道数据")
 # 用户输入机场三字码
 airports2 = st.text_input("输入起飞机场三字码（多个机场以空格分开）",value='CTU TFU CKG KMG')
-airport_list2 = airports2.split()
+airport_list2 = airports2.split(' ')
 if st.button('生成处理结果（跑道占比）'):
     with st.spinner('正在处理数据，请稍等...'):
         if source_file2 is not None:
@@ -423,5 +424,54 @@ if is_button==1:
     download_button(os.path.abspath(r'result.xlsx'), 'download')
 st.write(st.session_state.df3)
 st.write('---------------------------------') 
-    
+st.title('柱状图制作')
+month = st.text_input("输入时间段名称（以空格分开）",value='7月 8月')
+month_list = month.split(' ')
+datadic={}
+for month in month_list:
+    datastr=st.text_input("输入{}数据（西/中/东跑道占比，以空格分开）".format(month),value='32.1 41.5 26.4')
+    datadic[month]=[float(num) for num in datastr.split()]
+    j=0
+    for x in datadic[month]:
+        x=float(x)
+        j=j+x
+    if 98<j<102:
+        st.success('Done')
+    else:
+        st.warning('请检查数值')
+        
+data=pd.DataFrame(datadic, index=['西跑道','中跑道','东跑道'])
+st.write(data.transpose())
 
+
+# 绘制柱状图
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
+plt.rcParams['axes.unicode_minus'] = False
+fig, ax = plt.subplots(figsize=(4,2), dpi=100)
+months = list(datadic.keys())
+runways = ['西跑道', '中跑道', '东跑道']
+data = np.array(list(datadic.values()))
+
+# 绘制柱状图
+fig, ax = plt.subplots()
+width = 0.2  # 柱子的宽度
+x = np.arange(len(runways))
+
+for i in range(len(months)):
+    ax.bar(x + i * width, data[i], width, label=months[i])
+
+# 添加数值标签
+for i in range(len(months)):
+    for j in range(len(runways)):
+        ax.text(x[j] + i * width, data[i][j], str(data[i][j]), ha='center', va='bottom')
+
+# 设置图例和轴标签
+ax.set_xticks(x + width * (len(months) - 1) / 2)
+ax.set_xticklabels(runways)
+ax.legend(months)
+ax.set_xlabel('跑道')
+ax.set_ylabel('百分比：%')
+ax.set_title('首都机场跑道占比柱状图')
+
+# 显示图形
+st.pyplot(plt)
