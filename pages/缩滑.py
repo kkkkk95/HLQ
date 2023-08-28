@@ -432,7 +432,13 @@ st.write('---------------------------------')
 st.write('## 柱状图制作')
 st.write('### 数据导入:')
 col1,col2=st.columns(2)
-
+if  source_file1 and source_file2 is not None:
+    anal=ana(source_file1,st,1)
+    dic_options=anal.pos_pattern_rule
+    list_choice_=list(dic_options.keys())
+    list_choice=['汇总']+list_choice_
+else:
+    list_choice=['汇总']
 with col2:
     datadic_selfmake={}
     st.write('输入额外数据以制作柱状图')
@@ -446,7 +452,7 @@ with col2:
             x=float(x)
             j=j+x
         if 98<j<102:
-            st.success('Data Matched!')
+            st.success('Data Matched')
         else:
             st.warning('请检查数值')
     if st.button('输入数据',key='button0'):
@@ -454,10 +460,9 @@ with col2:
         st.write(data.transpose())
         st.session_state.recorddic.update(datadic_selfmake)
 with col1:
-    
     st.write('记录当前数据（按地区和款窄体机分类跑道使用数据对比）')
     month = st.text_input("输入时间段名称",value='7月')
-    pos=st.text_input("输入地区分类",value='东南亚')
+    pos=st.selectbox('选择地区分类', list_choice, key='pos_list_choice')
     if st.button('记录数据',key='button1'):
         if st.session_state.df3 is not None and not st.session_state.df3.empty:
             zongjie = st.session_state.df3.loc[pos]
