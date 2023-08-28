@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import re
 import datetime
 import os
+import base64
 # 设置网页标题，以及使用宽屏模式
 st.set_page_config(
     page_title="TAXI_TIME",
@@ -308,6 +309,42 @@ st.title("“缩滑”工作进展")
 st.write('---------------------------------')
 st.write("## 佳木斯和通辽航班移至T3航站楼进出港后的平均进出港时间")
 
+def download_button(file_path, button_text):
+    with open(os.path.abspath(file_path), 'rb') as f:
+        bytes = f.read()
+        b64 = base64.b64encode(bytes).decode()
+
+    # 创建一个名为 "Download File" 的下载链接
+    href = f'<a href="data:application/octet-stream;base64,{b64}" download="{os.path.basename(file_path)}">{button_text}</a>'
+
+    # 在 Streamlit 应用程序中使用按钮链接
+    st.markdown(f'<div class="button-container">{href}</div>', unsafe_allow_html=True)
+
+    # 添加 CSS 样式以将链接样式化为按钮
+    st.markdown("""
+        <style>
+        .button-container {
+            display: inline-block;
+            margin-top: 1em;
+        }
+        .button-container a {
+            background-color: #0072C6;
+            border: none;
+            color: white;
+            padding: 0.5em 1em;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button-container a:hover {
+            background-color: #005AA3;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 # 用户输入机场三字码
 airports1 = st.text_input("输入起飞机场三字码（多个机场以空格分开）",value='JMU TGO')
 airport_list1 = airports1.split()
@@ -382,6 +419,8 @@ if st.button('生成处理结果（各地区数据）'):
 
 if is_button==1:
     st.session_state.df3 = df
+    result=df.to_excel(os.path.abspath(r'result.xlsx'))
+    download_button(os.path.abspath(r'result.xlsx'), 'download')
 st.write(st.session_state.df3)
 st.write('---------------------------------') 
     
