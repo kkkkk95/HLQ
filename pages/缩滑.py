@@ -10,6 +10,8 @@ import os
 import base64
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 # 设置网页标题，以及使用宽屏模式
 st.set_page_config(
     page_title="TAXI_TIME",
