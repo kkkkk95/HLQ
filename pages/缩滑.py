@@ -490,7 +490,7 @@ datadic=st.session_state.recorddic
 months = list(datadic.keys())
 runways = ['西跑道', '中跑道', '东跑道']
 data = np.array(list(datadic.values()))
-st.write(pd.DataFrame(datadic,index=runways).transpose())
+
 
 # 绘制柱状图
 fig, ax = plt.subplots()
@@ -512,6 +512,9 @@ ax.legend(months)
 ax.set_xlabel('跑道')
 ax.set_ylabel('百分比：%')
 ax.set_title('首都机场落地跑道占比柱状图')
-
-# 显示图形
-st.pyplot(plt)
+col1,col2=st.columns(2)
+with col1:
+    # 显示图形
+    st.pyplot(plt)
+with col2:
+    st.write(pd.DataFrame(datadic,index=runways).transpose())
