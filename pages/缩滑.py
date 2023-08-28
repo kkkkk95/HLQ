@@ -11,9 +11,7 @@ import base64
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib as mpl
-mpl.font_manager.fontManager.addfont(r'data/思源屏显臻宋.ttf') #临时注册新的全局字体
-plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
-plt.rcParams['axes.unicode_minus']=False#用来正常显示负号
+
 # 设置网页标题，以及使用宽屏模式
 st.set_page_config(
     page_title="TAXI_TIME",
@@ -479,8 +477,9 @@ with col1:
 st.write('---------------------')
 st.write('### 结果输出:')
 # 绘制柱状图
-plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
-plt.rcParams['axes.unicode_minus'] = False
+mpl.font_manager.fontManager.addfont(r'data/思源屏显臻宋.ttf') #临时注册新的全局字体
+plt.rcParams['font.sans-serif']=['思源屏显臻宋'] #用来正常显示中文标签
+plt.rcParams['axes.unicode_minus']=False#用来正常显示负号
 fig, ax = plt.subplots(figsize=(4,2), dpi=100)
 datadic=st.session_state.recorddic
 months = list(datadic.keys())
