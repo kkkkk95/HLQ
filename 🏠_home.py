@@ -1,4 +1,4 @@
-import os
+
 import pandas as pd
 import requests
 from PIL import Image

@@ -65,6 +65,17 @@ class ana:
             '高高原':r'^(ZUDC|ZUHY|ZUBD|ZUNZ|ZULZ|ZUZJ|ZURK|ZUKD|ZUGZ|ZUAL|ZPNL|ZPDQ|ZLYS|ZLXH|ZLHB|ZLGM|ZLGL|ZHSN)$',
             '短跑道':r'^(ZGHZ|ZGZJ|ZPJH|ZSFY|ZSJD|ZSSR|ZSWY|ZUMY|ZWYN|ZYTN|ZYCY|ZUDX)$'
         }
+        self.international_pattern={
+            '澳洲':r'^(Y|NZ)[A-Z]{2}$',
+            '日韩':r'^(RK|ZK|RJ|RO)[A-Z]{2}$',
+            '美洲':r'^(C|K|P|S)[A-Z]{3}$',
+            '欧洲':r'^(UUEE|E|L|G|U)[A-Z]{3}$',
+            '韩国':r'^(RK|ZK)[A-Z]{2}$',
+            '日本':r'^(RJ|RO)[A-Z]{2}$',
+            '地区':r'^(VH|VM|RC)[A-Z]{2}$',
+            '东南亚':r'^(VT|V|O|RP|W)[A-Z]{2}$',
+            '印度':r'^(VA|VE|VI|VO)[A-Z]{2}$'
+        }
         #设置三字码四字码数据
         self.dicelse={
             'TFU':'ZUTF',
@@ -155,6 +166,7 @@ class ana:
         return dic
     def calculate_percent1(self,pos,minutes):
         filtered_df = self.df[(self.df['起飞机场'].isin(pos))]
+        
         #平均滑入时间
         time_format = datetime.timedelta(minutes=minutes)
         filtered_df['滑入时间'] = abs(filtered_df['滑入时间'])
@@ -163,12 +175,12 @@ class ana:
         average_taxiin = str(total_taxiin / len(filtered_df)).split(" ")[-1]
 
         #跑道占比
-        df_all = self.reading()
-        df=df_all[(df_all['起飞机场'].isin(pos))]
-        sum_n=len(df)
-        west = [len(df[df['落地跑道'].isin(self.west_runway)]),"{:.2f}%".format((len(df[df['落地跑道'].isin(self.west_runway)])/sum_n)*100)]
-        centre = [len(df[df['落地跑道'].isin(self.center_runway)]),"{:.2f}%".format((len(df[df['落地跑道'].isin(self.center_runway)])/sum_n)*100)]
-        east = [len(df[df['落地跑道'].isin(self.east_runway)]),"{:.2f}%".format((len(df[df['落地跑道'].isin(self.east_runway)])/sum_n)*100)]
+        # 删除"落地跑道"列值为nan的数据行
+        filtered_df = filtered_df[filtered_df['落地跑道'] != 'nan']
+        sum_n=len(filtered_df)
+        west = [len(filtered_df[filtered_df['落地跑道'].isin(self.west_runway)]),"{:.2f}%".format((len(filtered_df[filtered_df['落地跑道'].isin(self.west_runway)])/sum_n)*100)]
+        centre = [len(filtered_df[filtered_df['落地跑道'].isin(self.center_runway)]),"{:.2f}%".format((len(filtered_df[filtered_df['落地跑道'].isin(self.center_runway)])/sum_n)*100)]
+        east = [len(filtered_df[filtered_df['落地跑道'].isin(self.east_runway)]),"{:.2f}%".format((len(filtered_df[filtered_df['落地跑道'].isin(self.east_runway)])/sum_n)*100)]
         data={'西跑道':west,
             '中跑道':centre,
             '东跑道':east}
@@ -183,6 +195,7 @@ class ana:
                                         '东跑道宽体机个数', '东跑道宽体机占比', '东跑道窄体机个数', '东跑道窄体机占比',
                                         '总平均滑入时间', '宽体机平均滑入时间', '窄体机平均滑入时间'])
         total=len(self.df['起飞机场四字码'])
+        num_international=0
         for region in self.pos_pattern_rule.keys():
             # 获取符合正则表达式的起飞机场四字码
             matching_airports = self.df[self.df['起飞机场四字码'].str.match(self.pos_pattern_rule[region]) & self.df['起飞机场四字码'].notna()]
@@ -191,32 +204,46 @@ class ana:
             # 去除所有滑入时间大于15分钟的数据
             time_format = datetime.timedelta(minutes=minutes)
             matching_airports = matching_airports[matching_airports['滑入时间'] <= time_format]
-            #去除国际航班落地时间在0-6点的数据
-            if region in ['澳洲','日韩','美洲','欧洲','韩国','日本','东南亚','印度']:
+            if region in self.international_pattern.keys():
                 matching_airports = matching_airports[matching_airports['ACARS落地时间'].dt.hour > 6]
-            # 计算总个数
-            total_count = len(matching_airports)
-            if total_count!=0:
-                # 计算西跑道宽体机个数和占比
-                west_wide_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.west_runway)) & (matching_airports['机型'].isin(self.wide))])
-                west_narrow_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.west_runway)) & (matching_airports['机型'].isin(self.narrow))])
-                west_wide_percentage = "{:.2f}%".format((west_wide_count / total_count)*100)
-                west_narrow_percentage = "{:.2f}%".format((west_narrow_count / total_count)*100)
+            if len(matching_airports)!=0:
+                # 计算总个数
+                total_count = len(matching_airports)
+                #国际航班计算跑道占比
+                if region in self.international_pattern.keys():
+                    num_international=num_international+total_count
+                    # 计算西跑道宽体机个数和占比
+                    west_wide_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.west_runway)) & (matching_airports['机型'].isin(self.wide))])
+                    west_narrow_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.west_runway)) & (matching_airports['机型'].isin(self.narrow))])
+                    west_wide_percentage = "{:.2f}%".format((west_wide_count / total_count)*100)
+                    west_narrow_percentage = "{:.2f}%".format((west_narrow_count / total_count)*100)
 
 
-                # 计算中跑道宽体机个数和占比
-                center_wide_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.center_runway)) & (matching_airports['机型'].isin(self.wide))])
-                center_narrow_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.center_runway)) & (matching_airports['机型'].isin(self.narrow))])
-                center_wide_percentage = "{:.2f}%".format((center_wide_count / total_count)*100)
-                center_narrow_percentage = "{:.2f}%".format((center_narrow_count / total_count)*100)
+                    # 计算中跑道宽体机个数和占比
+                    center_wide_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.center_runway)) & (matching_airports['机型'].isin(self.wide))])
+                    center_narrow_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.center_runway)) & (matching_airports['机型'].isin(self.narrow))])
+                    center_wide_percentage = "{:.2f}%".format((center_wide_count / total_count)*100)
+                    center_narrow_percentage = "{:.2f}%".format((center_narrow_count / total_count)*100)
 
 
-                # 计算东跑道宽体机个数和占比
-                east_wide_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.east_runway)) & (matching_airports['机型'].isin(self.wide))])
-                east_narrow_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.east_runway)) & (matching_airports['机型'].isin(self.narrow))])
-                east_wide_percentage = "{:.2f}%".format((east_wide_count / total_count)*100)
-                east_narrow_percentage = "{:.2f}%".format((east_narrow_count / total_count)*100)
-
+                    # 计算东跑道宽体机个数和占比
+                    east_wide_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.east_runway)) & (matching_airports['机型'].isin(self.wide))])
+                    east_narrow_count = len(matching_airports[(matching_airports['落地跑道'].isin(self.east_runway)) & (matching_airports['机型'].isin(self.narrow))])
+                    east_wide_percentage = "{:.2f}%".format((east_wide_count / total_count)*100)
+                    east_narrow_percentage = "{:.2f}%".format((east_narrow_count / total_count)*100)
+                else:
+                    west_wide_count = 'nan'
+                    west_narrow_count = 'nan'
+                    west_wide_percentage = 'nan'
+                    west_narrow_percentage = 'nan'
+                    center_wide_count = 'nan'
+                    center_narrow_count = 'nan'
+                    center_wide_percentage = 'nan'
+                    center_narrow_percentage = 'nan'
+                    east_wide_count = 'nan'
+                    east_narrow_count = 'nan'
+                    east_wide_percentage = 'nan'
+                    east_narrow_percentage = 'nan'
                 # 计算平均滑入时间
                 # 计算总平均滑入时间
                 total_taxiout = matching_airports['滑入时间'].sum()
@@ -227,6 +254,7 @@ class ana:
                 # 计算窄体机平均滑入时间
                 narrow_total_taxi_in_time = matching_airports[matching_airports['机型'].isin(self.narrow)]['滑入时间'].sum()
                 narrow_average_taxi_in_time = str(narrow_total_taxi_in_time / len(matching_airports[matching_airports['机型'].isin(self.narrow)])).split(" ")[-1] if len(matching_airports[matching_airports['机型'].isin(self.narrow)]) !=0 else 0
+
                 # 更新结果DataFrame
                 result_df.loc[region] = [total_count,
                                     west_wide_count, west_wide_percentage, west_narrow_count, west_narrow_percentage,
@@ -235,75 +263,76 @@ class ana:
                                     average_taxi_in_time, wide_average_taxi_in_time, narrow_average_taxi_in_time]
             else:
                 result_df.loc[region] = 0
+            
+        # 添加汇总行
+        # 进行计算
+        numall=result_df[0:-1]['总个数'].fillna(0).replace('nan', '0').astype(int).sum()
         
-    
-            # 添加汇总行
-            # 进行计算
-            numall=result_df[0:-1]['总个数'].fillna(0).replace('nan', '0').astype(int).sum()
-            numwestwide=result_df[0:-1]['西跑道宽体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
-            percentwestwide=(numwestwide/numall*100).round(2).astype(str) + '%'
-            numwestnarrow=result_df[0:-1]['西跑道窄体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
-            percentwestnarrow=(numwestnarrow/numall*100).round(2).astype(str) + '%'
+        numwestwide=result_df[0:-1]['西跑道宽体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
+        percentwestwide=(numwestwide/num_international*100).round(2).astype(str) + '%'
+        numwestnarrow=result_df[0:-1]['西跑道窄体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
+        percentwestnarrow=(numwestnarrow/num_international*100).round(2).astype(str) + '%'
 
-            numcenterwide=result_df[0:-1]['中跑道宽体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
-            percentcenterwide=(numcenterwide/numall*100).round(2).astype(str) + '%'
-            numcenternarrow=result_df[0:-1]['中跑道窄体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
-            percentcenternarrow=(numcenternarrow/numall*100).round(2).astype(str) + '%'
+        numcenterwide=result_df[0:-1]['中跑道宽体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
+        percentcenterwide=(numcenterwide/num_international*100).round(2).astype(str) + '%'
+        numcenternarrow=result_df[0:-1]['中跑道窄体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
+        percentcenternarrow=(numcenternarrow/num_international*100).round(2).astype(str) + '%'
 
-            numeastwide=result_df[0:-1]['东跑道宽体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
-            percenteastwide=(numeastwide/numall*100).round(2).astype(str) + '%'
-            numeastnarrow=result_df[0:-1]['东跑道窄体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
-            percenteastnarrow=(numeastnarrow/numall*100).round(2).astype(str) + '%'
+        numeastwide=result_df[0:-1]['东跑道宽体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
+        percenteastwide=(numeastwide/num_international*100).round(2).astype(str) + '%'
+        numeastnarrow=result_df[0:-1]['东跑道窄体机个数'].fillna(0).replace('nan', '0').astype(int).sum()
+        percenteastnarrow=(numeastnarrow/num_international*100).round(2).astype(str) + '%'
 
 
-            # 将值为0的timedelta替换为NaN
-            result_df['总平均滑入时间'] = result_df['总平均滑入时间'].replace(pd.Timedelta(0), pd.NaT)
-            result_df['宽体机平均滑入时间'] = result_df['宽体机平均滑入时间'].replace(pd.Timedelta(0), pd.NaT)
-            result_df['窄体机平均滑入时间'] = result_df['窄体机平均滑入时间'].replace(pd.Timedelta(0), pd.NaT)
+        # 将值为0的timedelta替换为NaN
+        result_df['总平均滑入时间'] = result_df['总平均滑入时间'].replace(pd.Timedelta(0), pd.NaT)
+        result_df['宽体机平均滑入时间'] = result_df['宽体机平均滑入时间'].replace(pd.Timedelta(0), pd.NaT)
+        result_df['窄体机平均滑入时间'] = result_df['窄体机平均滑入时间'].replace(pd.Timedelta(0), pd.NaT)
 
-            # 转换为timedelta类型
-            result_df['总平均滑入时间'] = pd.to_timedelta(result_df['总平均滑入时间'])
-            result_df['宽体机平均滑入时间'] = pd.to_timedelta(result_df['宽体机平均滑入时间'])
-            result_df['窄体机平均滑入时间'] = pd.to_timedelta(result_df['窄体机平均滑入时间'])
+        # 转换为timedelta类型
+        result_df['总平均滑入时间'] = pd.to_timedelta(result_df['总平均滑入时间'])
+        result_df['宽体机平均滑入时间'] = pd.to_timedelta(result_df['宽体机平均滑入时间'])
+        result_df['窄体机平均滑入时间'] = pd.to_timedelta(result_df['窄体机平均滑入时间'])
 
-            # 计算平均滑入时间（以秒为单位）
-            average_total_time = result_df['总平均滑入时间'].mean().total_seconds()
-            average_wide_time = result_df['宽体机平均滑入时间'].mean().total_seconds()
-            average_narrow_time = result_df['窄体机平均滑入时间'].mean().total_seconds()
+        # 计算平均滑入时间（以秒为单位）
+        average_total_time = result_df['总平均滑入时间'].mean().total_seconds()
+        average_wide_time = result_df['宽体机平均滑入时间'].mean().total_seconds()
+        average_narrow_time = result_df['窄体机平均滑入时间'].mean().total_seconds()
 
-            # 将平均滑入时间转换为Timedelta类型
-            average_total_time = pd.to_timedelta(average_total_time, unit='seconds')
-            average_wide_time = pd.to_timedelta(average_wide_time, unit='seconds')
-            average_narrow_time = pd.to_timedelta(average_narrow_time, unit='seconds')
+        # 将平均滑入时间转换为Timedelta类型
+        average_total_time = pd.to_timedelta(average_total_time, unit='seconds')
+        average_wide_time = pd.to_timedelta(average_wide_time, unit='seconds')
+        average_narrow_time = pd.to_timedelta(average_narrow_time, unit='seconds')
 
-            # 将平均滑入时间转换为字符串格式
-            average_total_time_str = str(average_total_time).split()[-1]
-            average_wide_time_str = str(average_wide_time).split()[-1]
-            average_narrow_time_str = str(average_narrow_time).split()[-1]
+        # 将平均滑入时间转换为字符串格式
+        average_total_time_str = str(average_total_time).split()[-1]
+        average_wide_time_str = str(average_wide_time).split()[-1]
+        average_narrow_time_str = str(average_narrow_time).split()[-1]
 
-            # 将修改后的数据赋值给对应的列
-            result_df.loc['汇总'] = [
-                numall,
-                numwestwide,
-                percentwestwide,
-                numwestnarrow,
-                percentwestnarrow,
-                numcenterwide,
-                percentcenterwide,
-                numcenternarrow,
-                percentcenternarrow,
-                numeastwide,
-                percenteastwide,
-                numeastnarrow,
-                percenteastnarrow,
-                average_total_time_str,
-                average_wide_time_str,
-                average_narrow_time_str
-            ]
-            result_df = result_df.astype(str)
-            result_df['总平均滑入时间'] = result_df['总平均滑入时间'].str.extract(r'(\d{2}:\d{2}:\d{2})')
-            result_df['宽体机平均滑入时间'] = result_df['宽体机平均滑入时间'].str.extract(r'(\d{2}:\d{2}:\d{2})')
-            result_df['窄体机平均滑入时间'] = result_df['窄体机平均滑入时间'].str.extract(r'(\d{2}:\d{2}:\d{2})')
+        # 将修改后的数据赋值给对应的列
+        result_df.loc['汇总'] = [
+            numall,
+            numwestwide,
+            percentwestwide,
+            numwestnarrow,
+            percentwestnarrow,
+            numcenterwide,
+            percentcenterwide,
+            numcenternarrow,
+            percentcenternarrow,
+            numeastwide,
+            percenteastwide,
+            numeastnarrow,
+            percenteastnarrow,
+            average_total_time_str,
+            average_wide_time_str,
+            average_narrow_time_str
+        ]
+        result_df = result_df.astype(str)
+        result_df['总平均滑入时间'] = result_df['总平均滑入时间'].str.extract(r'(\d{2}:\d{2}:\d{2})')
+        result_df['宽体机平均滑入时间'] = result_df['宽体机平均滑入时间'].str.extract(r'(\d{2}:\d{2}:\d{2})')
+        result_df['窄体机平均滑入时间'] = result_df['窄体机平均滑入时间'].str.extract(r'(\d{2}:\d{2}:\d{2})')
+        
         return result_df
 
 
@@ -398,10 +427,29 @@ if st.button('生成处理结果（跑道占比）'):
             df = pd.DataFrame(data, index=['数量', '百分比'])
             col1, col2 = st.columns(2)
             with col1:
-                st.bar_chart(df.loc['数量'])
+                # 提取数据
+                runways = list(data.keys())
+                values = [x[0] for x in data.values()]
+                percent= [x[1] for x in data.values()]
+                # 创建一个图表
+                fig, ax = plt.subplots()
+
+                # 绘制柱状图
+                ax.bar(runways, values)
+
+                # 添加标注
+                for i in range(len(runways)):
+                    ax.text(runways[i], values[i], f"{values[i]} ({percent[i]})", ha='center', va='bottom')
+
+                # 设置轴标签
+                ax.set_xlabel('跑道')
+                ax.set_ylabel('百分比')
+                st.pyplot(plt)
                 st.write('当月平均滑入时长：'+average_taxiin)
             with col2:
                 st.write(df)
+                result=df.to_excel(os.path.abspath(r'result.xlsx'))
+                download_button(os.path.abspath(r'result.xlsx'), 'download')
             
         else:
             st.warning('未检测到文件')
@@ -434,7 +482,7 @@ st.write('### 数据导入:')
 col1,col2=st.columns(2)
 if  source_file2 is not None:
     anal=ana(source_file2,st,1)
-    dic_options=anal.pos_pattern_rule
+    dic_options=anal.international_pattern
     list_choice_=list(dic_options.keys())
     list_choice=['汇总']+list_choice_
 else:
@@ -485,7 +533,7 @@ st.write('### 结果输出:')
 mpl.font_manager.fontManager.addfont('字体/SimHei.ttf') #临时注册新的全局字体
 plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
 plt.rcParams['axes.unicode_minus']=False#用来正常显示负号
-fig, ax = plt.subplots(figsize=(4,2), dpi=100)
+fig, ax = plt.subplots(figsize=(2,1))
 datadic=st.session_state.recorddic
 months = list(datadic.keys())
 runways = ['西跑道', '中跑道', '东跑道']
@@ -497,8 +545,10 @@ fig, ax = plt.subplots()
 width = 0.2  # 柱子的宽度
 x = np.arange(len(runways))
 
+colors = ['blue', 'green']  # 设置颜色列表
+
 for i in range(len(months)):
-    ax.bar(x + i * width, data[i], width, label=months[i])
+    ax.bar(x + i * width, data[i], width, label=months[i], color=colors[i % len(colors)])  # 根据索引选择颜色
 
 # 添加数值标签
 for i in range(len(months)):
@@ -508,13 +558,21 @@ for i in range(len(months)):
 # 设置图例和轴标签
 ax.set_xticks(x + width * (len(months) - 1) / 2)
 ax.set_xticklabels(runways)
-ax.legend(months)
+ax.legend(months, loc='upper center')
 ax.set_xlabel('跑道')
 ax.set_ylabel('百分比：%')
-ax.set_title('首都机场落地跑道占比柱状图')
+# 设置纵轴范围为0到100
+ax.set_ylim(0, 100)
+ax.set_title('PEK国际航班落地跑道占比柱状图')
+
 col1,col2=st.columns(2)
 with col1:
+    st.write('柱状图')
     # 显示图形
     st.pyplot(plt)
 with col2:
-    st.write(pd.DataFrame(datadic,index=runways).transpose())
+    st.write('结果表格')
+    df=pd.DataFrame(datadic,index=runways).transpose()
+    result=df.to_excel(os.path.abspath(r'result.xlsx'))
+    download_button(os.path.abspath(r'result.xlsx'), 'download')
+    st.write(df)
